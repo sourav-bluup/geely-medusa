@@ -1,0 +1,20 @@
+meta {
+  name: Create Poduct Specification value
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/admin/vehicle/product-specification-value
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "enabled",
+    "specification_id": "sp_01J5X5FSAJFZSGFNXFX0YZ5TEG",
+    "specification_value_id": "spv_01J5XFQHMAC4AMY1224QB4EPS7",
+    "product_id": "prod_01J8GTSPK4XD8WWSRMV7XQ06N6"
+  }
+}

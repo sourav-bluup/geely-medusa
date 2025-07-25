@@ -1,0 +1,39 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/admin/vehicle/model
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Toyota Camry",
+    "make_id": "mk_01J8ZS11JPB0BD2V1XNM1G2DZ5",
+    "introduction_year": 2022,
+    "discontinued_year": null,
+    "trims": ["LE", "XLE", "SE", "XSE"],
+    "interior_color": ["Black", "Beige", "Gray"],
+    "body_color": ["White", "Black", "Blue"],
+    "type": "new",
+    "mileage": null,
+    "has_installment": true,
+    "installment_amount": 500,
+    "installment_term": "monthly",
+    "installment_down_payment_amount": 2000,
+    "installment_description": "Available for 36 months with a down payment.",
+    "has_lease": true,
+    "lease_amount": 450,
+    "lease_term": 36,
+    "lease_down_payment_amount": 1500,
+    "lease_description": "36 months lease term with down payment.",
+    "has_test_drive": true,
+    "test_drive_amount": 50,
+    "test_drive_description": "Test drive available for $50."
+  }
+  
+}

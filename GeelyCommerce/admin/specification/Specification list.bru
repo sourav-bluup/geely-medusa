@@ -1,0 +1,18 @@
+meta {
+  name: Specification list
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/admin/vehicle/specification
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Year",
+    "category": "general"
+  }
+}

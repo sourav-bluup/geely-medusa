@@ -1,0 +1,15 @@
+meta {
+  name: Get trim specifications
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{BASE_URL}}/admin/vehicle/model/{{id}}/trim-specifications
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  id: vmdl_01J900QH85AKP082JQP98KHVYD
+}

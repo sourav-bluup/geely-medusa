@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "aaron-bond.better-comments",
+    "alefragnani.Bookmarks",
+    "streetsidesoftware.code-spell-checker",
+    "adpyke.codesnap",
+    "mikestead.dotenv",
+    "dbaeumer.vscode-eslint",
+    "wayou.vscode-todo-highlight",
+    "spmeesseman.vscode-taskexplorer",
+    "donjayamanne.githistory",
+    "eamodio.gitlens",
+    "christian-kohler.path-intellisense",
+    "esbenp.prettier-vscode",
+    "humao.rest-client",
+    "dbaeumer.vscode-eslint"
+  ]
+}

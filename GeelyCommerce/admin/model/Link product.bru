@@ -1,0 +1,18 @@
+meta {
+  name: Link product
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{BASE_URL}}/admin/vehicle/model/link-product
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "model_id": "vmdl_01J900QH85AKP082JQP98KHVYD",
+    "product_id": "prod_01J90BRFHFN12BH1DKF39BSG9Z"
+  }
+}

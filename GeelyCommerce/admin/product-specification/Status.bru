@@ -1,0 +1,21 @@
+meta {
+  name: Status
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/admin/vehicle/product-specification/{{id}}/status
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "status": "enabled"
+  }
+}
+
+vars:pre-request {
+  id: vsppval_01J8KGRRMTKQP71CD8ZHTM1MPS
+}

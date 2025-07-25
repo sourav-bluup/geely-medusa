@@ -1,0 +1,15 @@
+meta {
+  name: Variant List
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/admin/vehicle/product/{{id}}/variant-specification
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  id: prod_01J8GTSPK4XD8WWSRMV7XQ06N6
+}

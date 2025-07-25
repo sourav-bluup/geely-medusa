@@ -1,0 +1,27 @@
+meta {
+  name: List models
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/admin/vehicle/model
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+      "title": "Tugella",
+      "introduction_year": "2022",
+      "discontinued_year": "2331",
+      "make_id": "mk_01J5V9AAYAM9TZ75XTY6AJDKB8",
+      "trims": [
+          "GL 2WD",
+          "GF 2WD",
+          "GF+ 4WD"
+      ],
+      "interior_color": ["Light Grey", "Grey", "Black", "White"],
+      "body_color": ["Yellow Green","Black"]
+  }
+}

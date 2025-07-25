@@ -1,0 +1,69 @@
+name: GIthub action for Build and push Docker image to AWS ECR
+
+env:
+  ECR_REPOSITORY: geely-medusajs
+  TAG: production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: me-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          secret=$(aws secretsmanager get-secret-value --secret-id arn:aws:secretsmanager:me-central-1:682033474360:secret:production/geely-medusajs --query SecretString --output text)
+          echo "::set-output name=secret::$secret" > .env
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  update_production:
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    steps:
+      - name: SSH to staging and update systemd
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ECR_REGISTRY: 682033474360.dkr.ecr.me-central-1.amazonaws.com
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE_NAME: geely-medusajs
+          ECR_REPOSITORY: geely-medusajs
+          AWS_DEFAULT_REGION: me-central-1
+          AWS_REGION: me-central-1
+        with:
+          host: ${{ secrets.AWS_PROD_HOST }}
+          username: ${{ secrets.AWS_PROD_USER }}
+          key: ${{ secrets.AWS_PROD_PRIV_KEY }}
+          script: |
+            aws --region ${{ env.AWS_REGION }} ecr get-login-password | docker login -u AWS --password-stdin ${{ env.ECR_REGISTRY }}
+            old_pattern="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:[a-zA-Z0-9_\.\-]*"
+            new_image="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+            service_file="/etc/systemd/system/${{ env.SERVICE_NAME }}.service"
+            sudo sed -i "s|${old_pattern}|${new_image}|g" $service_file
+            docker pull $new_image
+            sudo systemctl daemon-reload
+            sudo systemctl restart ${{ env.SERVICE_NAME }}.service

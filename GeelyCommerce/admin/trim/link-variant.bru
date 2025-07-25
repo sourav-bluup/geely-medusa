@@ -1,0 +1,18 @@
+meta {
+  name: link-variant
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/admin/vehicle/trim/link-variant
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "variant_id": "variant_01J90BRFJ670FMZND6EYYP0KSV",
+    "trim_id": "vtrm_01J900QH8RSW8C9NGKHA54W25N"
+  }
+}

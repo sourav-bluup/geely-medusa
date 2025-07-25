@@ -1,0 +1,15 @@
+meta {
+  name: Delete
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{BASE_URL}}/admin/vehicle/make/{{id}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  id: mk__01J5MSD154FRK513TFXQ2D0MRR
+}

@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: production
+    target-branch: "dev"
+    groups:
+      medusa:
+        patterns:
+          - "@medusajs*"
+          - "medusa*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "@medusajs*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "medusa*"
+        update-types: ["version-update:semver-major"]

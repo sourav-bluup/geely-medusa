@@ -1,0 +1,15 @@
+meta {
+  name: Get variants
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/admin/vehicle/product/{{id}}/variants
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  id: prod_01J90BRFHFN12BH1DKF39BSG9Z
+}
