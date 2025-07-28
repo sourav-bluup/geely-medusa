@@ -19,6 +19,33 @@ type Filters = {
   body_type?: string[];
 };
 
+const getMinPrice = (product: any) => {
+  if (!product.variants || product.variants.length === 0) {
+    return 0;
+  }
+  // Find the minimum calculated_price among all variants
+  return product.variants.reduce((min, variant) => {
+    //console.log(variant, '\n\n--------------------------------------------------------------------');
+    const price = variant.calculated_price?.original_amount;
+    return price !== undefined && price < min ? price : min;
+  }, Infinity);
+};
+
+// Helper function to find the year of a product
+const getYear = (product: any): number => {
+  if (!product.categories || product.categories.length === 0) {
+    return 0;
+  }
+  
+  // IMPORTANT: Replace with the ID of your main "Year" category
+  const YEAR_CATEGORY_PARENT_ID = "pcat_01JAT2G5ATYG2WNXPWZ8TWDEQ5"; // Example ID
+
+  const yearCategory = product.categories.find(
+    (cat) => cat.parent_category_id === YEAR_CATEGORY_PARENT_ID
+  );
+  return yearCategory ? parseInt(yearCategory.name, 10) : 0;
+};
+
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
   res: MedusaResponse,
@@ -37,6 +64,10 @@ export const GET = async (
     delete req.filterableFields[key];
   }
 
+  const order = req.filterableFields.sortBy as string | undefined;
+  delete req.filterableFields.sortBy;
+  const isPriceSort = order === 'price_asc' || order === 'price_desc';
+  const isYearSort = order === 'year_asc' || order === 'year_desc';
   const { data: products, metadata } = await query.graph({
     entity: 'product',
     fields: defaultStoreProductFields,
@@ -61,6 +92,23 @@ export const GET = async (
 
   await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants);
   await withVariantMedia(req, variants);
+  // If the request was for a price sort, sort the results array now.
+  if (isPriceSort) {
+    products.sort((a, b) => {
+      const priceA = getMinPrice(a);
+      const priceB = getMinPrice(b);
+      console.log('priceA', priceA, 'priceB', priceB);
+      return order === 'price_asc' ? priceA - priceB : priceB - priceA;
+    });
+  } else if (isYearSort) {
+    products.sort((a, b) => {
+      const yearA = getYear(a);
+      const yearB = getYear(b);
+      return order === 'year_asc' ? yearA - yearB : yearB - yearA;
+    });
+  }
+
+  //console.log('products', products);
   return res.json({
     products: products.map(productTransformer),
     ...metadata,
