@@ -20,6 +20,7 @@ export const defaultStoreProductFields = [
   'categories.id',
   'categories.name',
   'categories.handle',
+  'categories.parent_category_id',
   'variants.id',
   'variants.title',
   'variants.variant_rank',
@@ -38,6 +39,7 @@ export const defaultStoreProductFields = [
   'variants.vehicle_trim_link.year',
   'variants.calculated_price.*',
   'variants.manage_inventory',
+  'variants.calculated_price',
 ];
 
 export const retrieveProductQueryConfig = {

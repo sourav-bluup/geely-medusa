@@ -20,6 +20,7 @@ export const SearchSelectParams = createFindParams({
       body_type: z.array(z.string()).optional(),
       region_id: z.string().optional(),
       collection_id: z.string().optional(),
+      sortBy : z.string().optional(),
     }),
   )
   .merge(GetProductsParams)
