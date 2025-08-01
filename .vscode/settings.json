@@ -84,5 +84,8 @@
     "tanstack",
     "vtspec",
     "xsmall"
-  ]
+  ],
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
 }
