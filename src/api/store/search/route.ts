@@ -1,8 +1,8 @@
 import { MedusaResponse } from '@medusajs/framework/http';
 import { RequestWithContext } from '@medusajs/medusa/api/store/products/helpers';
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from '@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity';
-import { HttpTypes } from '@medusajs/types';
-import { ContainerRegistrationKeys, QueryContext } from '@medusajs/utils';
+import { HttpTypes, IProductModuleService, ProductCategoryDTO } from '@medusajs/types';
+import { ContainerRegistrationKeys, Modules, QueryContext } from '@medusajs/utils';
 import { withVariantMedia } from './helpers/with-variant-media';
 import { defaultStoreProductFields } from './query-config';
 import { productTransformer } from './transformers/product-transformer';
@@ -32,13 +32,12 @@ const getMinPrice = (product: any) => {
 };
 
 // Helper function to find the year of a product
-const getYear = (product: any): number => {
+const getYear = (product: any, yearParentCategory: ProductCategoryDTO): number => {
   if (!product.categories || product.categories.length === 0) {
     return 0;
   }
-  
-  // IMPORTANT: Replace with the ID of your main "Year" category
-  const YEAR_CATEGORY_PARENT_ID = "pcat_01JAT2G5ATYG2WNXPWZ8TWDEQ5"; // Example ID
+
+  const YEAR_CATEGORY_PARENT_ID = yearParentCategory.id;
 
   const yearCategory = product.categories.find(
     (cat) => cat.parent_category_id === YEAR_CATEGORY_PARENT_ID
@@ -51,7 +50,6 @@ export const GET = async (
   res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
-
   const { pagination } = req.queryConfig;
 
   const remove = ['model_id', 'year', 'seats', 'engine', 'fuel_type', 'body_type'];
@@ -93,6 +91,21 @@ export const GET = async (
   await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants);
   await withVariantMedia(req, variants);
   // If the request was for a price sort, sort the results array now.
+
+  const productModuleService: IProductModuleService = req.scope.resolve(
+    Modules.PRODUCT
+  );
+
+  // 2. Fetch the main "Year" parent category by its handle
+  const [yearParentCategory] = await productModuleService.listProductCategories({
+    handle: "year",
+  });
+
+  // If the main "Year" category doesn't exist, we can't find a child
+  if (!yearParentCategory) {
+    console.warn("Main 'Year' category not found. by handle: year");
+  }
+
   if (isPriceSort) {
     products.sort((a, b) => {
       const priceA = getMinPrice(a);
@@ -102,8 +115,8 @@ export const GET = async (
     });
   } else if (isYearSort) {
     products.sort((a, b) => {
-      const yearA = getYear(a);
-      const yearB = getYear(b);
+      const yearA = getYear(a, yearParentCategory);
+      const yearB = getYear(b, yearParentCategory);
       return order === 'year_asc' ? yearA - yearB : yearB - yearA;
     });
   }
