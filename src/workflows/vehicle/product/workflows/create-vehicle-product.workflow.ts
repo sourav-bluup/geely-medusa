@@ -4,7 +4,7 @@
  */
 
 import { createWorkflow, transform, WorkflowData, WorkflowResponse } from '@medusajs/framework/workflows-sdk';
-import { createProductsWorkflow } from '@medusajs/medusa/core-flows';
+import { createProductsWorkflow, emitEventStep } from '@medusajs/medusa/core-flows';
 import { VehicleProductSchemaType } from '../../../../api/admin/vehicle/product/validators';
 import { linkTrimToProductVariantStep } from '../../trim/steps/link-trim-to-product-variation';
 import { addInventoryItemToLocationStep } from '../steps/add-inventory-item-to-location-step';
@@ -101,6 +101,12 @@ export const createVehicleProductWorkflow = createWorkflow(
     associateCategoriesToProductStep({
       product_id: createdProduct[0].id,
       model_id: input.model_id,
+    });
+
+    // Emit event so subscribers know a new product exists
+    emitEventStep({
+        eventName: "product.created",
+        data: { id: createdProduct[0].id }
     });
 
     // Return the created product in the workflow response

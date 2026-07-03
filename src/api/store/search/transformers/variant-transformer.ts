@@ -1,7 +1,10 @@
 import { RemoteQueryEntryPointsTypes } from '.medusa/types';
 import { calculatedPriceTransformer } from './calculated-price-transformer';
 
-export const variantTransformer = (variant: RemoteQueryEntryPointsTypes.ProductVariant) => ({
+export const variantTransformer = (
+  variant: RemoteQueryEntryPointsTypes.ProductVariant,
+  salePriceMap?: Record<string, number | null>,
+) => ({
   id: variant.id,
   title: variant.title,
   sku: variant.sku,
@@ -27,6 +30,8 @@ export const variantTransformer = (variant: RemoteQueryEntryPointsTypes.ProductV
     : null,
   // @ts-expect-error - valid id
   inventoryQuantity: variant.inventory_quantity,
-  // @ts-expect-error - valid prices
-  prices: calculatedPriceTransformer(variant?.calculated_price) || null,
+  prices: calculatedPriceTransformer(
+    (variant as any)?.calculated_price,
+    salePriceMap ? salePriceMap[variant.id] : null,
+  ) || null,
 });

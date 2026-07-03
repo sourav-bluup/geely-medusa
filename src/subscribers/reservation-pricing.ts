@@ -1,69 +1,77 @@
 import {
     type SubscriberArgs,
-    // CORRECTED: Import Subscriber types from the main medusa package
     type SubscriberConfig,
 } from "@medusajs/medusa";
 import {
     IPricingModuleService,
-    IProductModuleService
 } from "@medusajs/types";
 import { ContainerRegistrationKeys, Modules } from "@medusajs/utils";
 
 const VEHICLE_PRODUCT_TAG = "vehicle-product";
 
 export default async function reservationPricingHandler({
-    event: { data }, // The event payload is in `data`
+    event: { data },
     container,
 }: SubscriberArgs<{ id: string }>) {
-    console.log(`Handling reservation pricing for product with ID: ${data.id}`);
-    const productModuleService: IProductModuleService = container.resolve(
-        Modules.PRODUCT
-    );
+    console.log(`[Reservation Subscriber] Handling reservation pricing for product with ID: ${data.id}`);
+    
     const pricingModuleService: IPricingModuleService = container.resolve(
         Modules.PRICING
     );
     const linkModule: any = container.resolve(
         ContainerRegistrationKeys.LINK
     );
+    const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
-    // CORRECTED: The method is `retrieveProduct` and we use `data.id`
-    const product = await productModuleService.retrieveProduct(data.id, {
-        relations: ["tags", "variants"],
+    // Fetch product with variants and their linked price sets
+    const { data: [product] } = await query.graph({
+        entity: "product",
+        fields: ["id", "variants.id", "variants.price_set.id"],
+        filters: { id: data.id },
     });
 
-    const allPriceLists = await pricingModuleService.listPriceLists();
-
-    // Step 2: Find the "Reservation" price list in the array
-    const reservationPriceList = allPriceLists.find(
-        (pl) => pl.title === 'Reservation',
-    );
-    console.log(`Found reservation price list: ${reservationPriceList?.id}`);
-    if (!reservationPriceList) {
-        console.warn("Could not find a price list with the title 'Reservation'.");
+    if (!product) {
+        console.warn(`[Reservation Subscriber] Product with ID ${data.id} not found.`);
         return;
     }
 
-    // 1. Create a new, empty price set for each variant
-    const priceSetPayload = product.variants.map(() => ({}));
-    const priceSets = await pricingModuleService.createPriceSets(priceSetPayload);
+    const allPriceLists = await pricingModuleService.listPriceLists();
+    const reservationPriceList = allPriceLists.find(
+        (pl) => pl.title === 'Reservation',
+    );
 
-    // 2. Loop through each variant to link it and add the price
-    for (const [index, variant] of product.variants.entries()) {
+    if (!reservationPriceList) {
+        console.warn("[Reservation Subscriber] Could not find a price list with the title 'Reservation'. Skipping.");
+        return;
+    }
+
+    console.log(`[Reservation Subscriber] Using reservation price list: ${reservationPriceList.id}`);
+
+    // Loop through each variant
+    for (const variant of product.variants) {
         try {
-            const priceSetId = priceSets[index].id;
+            let priceSetId = variant.price_set?.id;
 
-            // 3. Explicitly link the variant to its new price set
-            await linkModule.create({
-                [Modules.PRODUCT]: {
-                    variant_id: variant.id,
-                },
-                [Modules.PRICING]: {
-                    price_set_id: priceSetId,
-                },
-            });
-            console.log(`[Reservation Subscriber] Successfully linked variant ${variant.id} to price set ${priceSetId}`);
+            // 1. If no price set exists, create one and link it
+            if (!priceSetId) {
+                console.log(`[Reservation Subscriber] No price set found for variant ${variant.id}. Creating new one.`);
+                const [newPriceSet] = await pricingModuleService.createPriceSets([{}]);
+                priceSetId = newPriceSet.id;
 
-            // 4. Add the reservation price to the price list
+                await linkModule.create({
+                    [Modules.PRODUCT]: {
+                        variant_id: variant.id,
+                    },
+                    [Modules.PRICING]: {
+                        price_set_id: priceSetId,
+                    },
+                });
+                console.log(`[Reservation Subscriber] Linked variant ${variant.id} to new price set ${priceSetId}`);
+            } else {
+                console.log(`[Reservation Subscriber] Variant ${variant.id} already has price set ${priceSetId}. Reusing it.`);
+            }
+
+            // 2. Add the reservation price to the price list for this price set
             await pricingModuleService.addPriceListPrices([{
                 price_list_id: reservationPriceList.id,
                 prices: [

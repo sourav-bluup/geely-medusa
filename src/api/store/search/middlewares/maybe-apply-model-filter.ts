@@ -8,31 +8,47 @@ export function maybeApplyModelFilter() {
 
     const productIds = Array.isArray(filterableFields.id)
       ? filterableFields.id
-      : [filterableFields.id];
+      : filterableFields.id
+      ? [filterableFields.id]
+      : [];
 
-    const handle = filterableFields.model_handle;
+    const rawHandle = filterableFields.model_handle;
 
-    if (!handle) {
+    if (!rawHandle) {
       return next();
     }
 
-    if (productIds.length === 0) {
+    // Normalise: the frontend sends a comma-separated string OR an array
+    const handles: string[] = Array.isArray(rawHandle)
+      ? rawHandle
+      : (rawHandle as string).split(',').map((h) => h.trim()).filter(Boolean);
+
+    if (handles.length === 0) {
       return next();
     }
 
+    console.log('maybeApplyModelFilter: handles=', handles);
+    
+    // Query vehicle_model and fetch their associated product IDs
     const { data: models } = await query.graph({
       entity: 'vehicle_model',
       fields: ['products.id'],
       filters: {
-        handle,
+        handle: { $in: handles } as any,
       },
     });
 
-    req.filterableFields.id = models
-      .map((id) =>
-        id.products.filter((product) => productIds.includes(product.id)).map((p) => p.id),
-      )
-      .flat(1);
+    const matchingProductIds = models.flatMap((m) => m.products?.map((p) => p.id) || []);
+    console.log('maybeApplyModelFilter: matchingProductIds=', matchingProductIds);
+
+    // If productIds list is pre-populated (e.g. from a previous middleware) intersect,
+    // otherwise use all matched ids.
+    if (productIds.length > 0) {
+      req.filterableFields.id = matchingProductIds.filter((id) => productIds.includes(id));
+    } else {
+      req.filterableFields.id = matchingProductIds;
+    }
+    console.log('maybeApplyModelFilter: final req.filterableFields.id=', req.filterableFields.id);
 
     return next();
   };

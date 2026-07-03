@@ -3,9 +3,12 @@ import { variantTransformer } from './variant-transformer';
 import { vehicleModelLinkTransformer } from './vehicle-model-link-transformer';
 import { vehicleModelTransformer } from './vehicle-model-transformer';
 
-export const productTransformer = (product: RemoteQueryEntryPointsTypes.Product) => {
+export const productTransformer = (
+  product: RemoteQueryEntryPointsTypes.Product,
+  salePriceMap?: Record<string, number | null>,
+) => {
   {
-    const variants = product.variants.map(variantTransformer);
+    const variants = product.variants.map((v) => variantTransformer(v, salePriceMap));
 
     const model = vehicleModelTransformer(product.vehicle_model, product.categories);
 

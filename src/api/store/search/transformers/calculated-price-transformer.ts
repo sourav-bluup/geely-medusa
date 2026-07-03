@@ -1,7 +1,6 @@
-import { RemoteQueryEntryPointsTypes } from '.medusa/types';
-
 export const calculatedPriceTransformer = (
-  price: RemoteQueryEntryPointsTypes.CalculatedPriceSet,
+  price: any,
+  salePrice?: number | null,
 ) => {
   if (!price?.id) {
     return null;
@@ -16,6 +15,10 @@ export const calculatedPriceTransformer = (
     isOriginalPriceTaxInclusive: price.is_original_price_tax_inclusive,
     originalAmount: price.original_amount,
     currencyCode: price.currency_code,
+    // salePrice: the lowest price from a 'sale'-type price list, sourced from
+    // a separate second-pass query so it is never overridden by the Reservation
+    // price list (which is type 'override').
+    salePrice: salePrice ?? null,
     calculatedPrice: {
       id: price.calculated_price.id,
       priceListId: price.calculated_price.price_list_id,

@@ -19,7 +19,7 @@ module.exports = defineConfig({
   admin: {
     backendUrl: process.env.MEDUSA_BACKEND_URL,
     disable: process.env.DISABLE_MEDUSA_ADMIN === 'true',
-   /* // @ts-expect-error - this is a valid path */
+    // @ts-expect-error - this is a valid path
     //path: process.env.MEDUSA_ADMIN_PATH || '/admin',
   },
   modules: [

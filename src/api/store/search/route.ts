@@ -62,6 +62,8 @@ export const GET = async (
     delete req.filterableFields[key];
   }
 
+
+
   const order = req.filterableFields.sortBy as string | undefined;
   delete req.filterableFields.sortBy;
   const isPriceSort = order === 'price_asc' || order === 'price_desc';
@@ -90,6 +92,43 @@ export const GET = async (
 
   await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants);
   await withVariantMedia(req, variants);
+
+  // --- Second-pass: fetch raw sale prices for all returned variants ---
+  // This is needed because the Reservation price list (type 'override') always wins
+  // Medusa's best-price calculation and hides any sale-type prices. By fetching
+  // price_set.prices separately (filtered to just these variant IDs), we can detect
+  // sale prices independently of the override.
+  const allVariantIds = variants.map((v: any) => v.id);
+  const salePriceMap: Record<string, number | null> = {};
+
+  if (allVariantIds.length > 0) {
+    try {
+      const { data: variantsWithPrices } = await query.graph({
+        entity: 'product_variant',
+        fields: [
+          'id',
+          'price_set.prices.amount',
+          'price_set.prices.price_list_id',
+          'price_set.prices.price_list.type',
+        ],
+        filters: { id: allVariantIds as any },
+      });
+
+      for (const v of variantsWithPrices) {
+        const prices = (v as any).price_set?.prices ?? [];
+        // Find the lowest price from a 'sale'-type price list
+        const salePrices = prices
+          .filter((p: any) => p.price_list?.type?.toLowerCase() === 'sale')
+          .map((p: any) => p.amount as number);
+        salePriceMap[v.id] = salePrices.length > 0 ? Math.min(...salePrices) : null;
+      }
+    } catch (e) {
+      // Non-fatal: if the second-pass fails, sale prices simply won't show
+      console.warn('Sale price second-pass query failed:', e);
+    }
+  }
+  // --- End second-pass ---
+
   // If the request was for a price sort, sort the results array now.
 
   const productModuleService: IProductModuleService = req.scope.resolve(
@@ -110,7 +149,7 @@ export const GET = async (
     products.sort((a, b) => {
       const priceA = getMinPrice(a);
       const priceB = getMinPrice(b);
-      console.log('priceA', priceA, 'priceB', priceB);
+      //console.log('priceA', priceA, 'priceB', priceB);
       return order === 'price_asc' ? priceA - priceB : priceB - priceA;
     });
   } else if (isYearSort) {
@@ -123,7 +162,7 @@ export const GET = async (
 
   //console.log('products', products);
   return res.json({
-    products: products.map(productTransformer),
+    products: products.map((p) => productTransformer(p, salePriceMap)),
     ...metadata,
   });
 };

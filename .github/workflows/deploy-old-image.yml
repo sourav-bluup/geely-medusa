@@ -1,0 +1,87 @@
+name: Deploy Old Production Image
+
+env:
+  ECR_REPOSITORY: geely-medusajs
+  TAG: production
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  deploy_old_image:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: me-central-1
+
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+
+      - name: Get environment variables from AWS Secrets Manager
+        id: secrets
+        run: |
+          aws secretsmanager get-secret-value \
+          --secret-id arn:aws:secretsmanager:me-central-1:891377086087:secret:production/geely-medusajs-RVTTPn \
+          --query SecretString \
+          --output text > .env
+
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: production
+          SERVICE_NAME: geely-medusajs
+          ECR_REPOSITORY: geely-medusajs
+          AWS_REGION: me-central-1
+
+        with:
+          host: ${{ secrets.AWS_PROD_HOST }}
+          username: ${{ secrets.AWS_PROD_USER }}
+          key: ${{ secrets.AWS_PROD_PRIV_KEY }}
+
+          envs: ECR_REGISTRY,IMAGE_TAG,SERVICE_NAME,ECR_REPOSITORY,AWS_REGION
+
+          script: |
+
+            echo "Logging into ECR"
+
+            aws --region $AWS_REGION ecr get-login-password \
+            | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+
+            echo "Pulling existing production image"
+
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+
+            echo "Updating systemd service"
+
+            old_pattern="${ECR_REGISTRY}/${ECR_REPOSITORY}:[a-zA-Z0-9_\.\-]*"
+            new_image="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+            service_file="/etc/systemd/system/${SERVICE_NAME}.service"
+
+            sudo sed -i "s|${old_pattern}|${new_image}|g" $service_file
+
+
+            echo "Restarting service"
+
+            sudo systemctl daemon-reload
+            sudo systemctl restart ${SERVICE_NAME}.service

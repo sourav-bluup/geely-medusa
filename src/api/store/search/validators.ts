@@ -11,7 +11,7 @@ export const SearchSelectParams = createFindParams({
 })
   .merge(
     z.object({
-      model_handle: z.string().optional(),
+      model_handle: z.union([z.string(), z.array(z.string())]).optional(),
       from_year: z.string().optional(),
       to_year: z.string().optional(),
       seats: z.array(z.string()).optional(),
