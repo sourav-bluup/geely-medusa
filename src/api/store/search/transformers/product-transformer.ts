@@ -54,6 +54,7 @@ export const productTransformer = (
       ...vehicleModelLinkTransformer(product.vehicle_model_link),
       model,
       variants,
+      metadata: product.metadata,
     };
   }
 };

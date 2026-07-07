@@ -34,4 +34,5 @@ export const variantTransformer = (
     (variant as any)?.calculated_price,
     salePriceMap ? salePriceMap[variant.id] : null,
   ) || null,
+  metadata: variant.metadata,
 });

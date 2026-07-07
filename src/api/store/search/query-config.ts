@@ -40,6 +40,8 @@ export const defaultStoreProductFields = [
   'variants.calculated_price.*',
   'variants.manage_inventory',
   'variants.calculated_price',
+  'metadata',
+  'variants.metadata',
 ];
 
 export const retrieveProductQueryConfig = {

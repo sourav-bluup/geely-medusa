@@ -103,24 +103,30 @@ export const GET = async (
 
   if (allVariantIds.length > 0) {
     try {
-      const { data: variantsWithPrices } = await query.graph({
-        entity: 'product_variant',
-        fields: [
-          'id',
-          'price_set.prices.amount',
-          'price_set.prices.price_list_id',
-          'price_set.prices.price_list.type',
-        ],
-        filters: { id: allVariantIds as any },
-      });
+      // Get all sale price list IDs directly from the pricing module
+      const pricingModuleService = req.scope.resolve(Modules.PRICING) as any;
+      const salePriceLists = await pricingModuleService.listPriceLists({ type: ['sale'] });
+      const salePriceListIds = salePriceLists.map((pl: any) => pl.id);
 
-      for (const v of variantsWithPrices) {
-        const prices = (v as any).price_set?.prices ?? [];
-        // Find the lowest price from a 'sale'-type price list
-        const salePrices = prices
-          .filter((p: any) => p.price_list?.type?.toLowerCase() === 'sale')
-          .map((p: any) => p.amount as number);
-        salePriceMap[v.id] = salePrices.length > 0 ? Math.min(...salePrices) : null;
+      if (salePriceListIds.length > 0) {
+        const { data: variantsWithPrices } = await query.graph({
+          entity: 'product_variant',
+          fields: [
+            'id',
+            'price_set.prices.amount',
+            'price_set.prices.price_list_id',
+          ],
+          filters: { id: allVariantIds as any },
+        });
+
+        for (const v of variantsWithPrices) {
+          const prices = (v as any).price_set?.prices ?? [];
+          // Find the lowest price from a 'sale'-type price list using the IDs
+          const salePrices = prices
+            .filter((p: any) => salePriceListIds.includes(p.price_list_id))
+            .map((p: any) => parseFloat(p.amount));
+          salePriceMap[v.id] = salePrices.length > 0 ? Math.min(...salePrices) : null;
+        }
       }
     } catch (e) {
       // Non-fatal: if the second-pass fails, sale prices simply won't show
