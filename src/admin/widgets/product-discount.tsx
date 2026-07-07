@@ -9,23 +9,24 @@ const ProductDiscountWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
   const [discount, setDiscount] = useState<string>(
     data.metadata?.discount_percentage ? String(data.metadata.discount_percentage) : ''
   );
+  const [displayOrder, setDisplayOrder] = useState<string>(
+    data.metadata?.display_order ? String(data.metadata.display_order) : ''
+  );
 
   const handleSave = async () => {
     setIsUpdating(true);
     try {
-      const discountValue = discount ? Number(discount) : null;
-      
-      // Update the product metadata
       await sdk.admin.product.update(data.id, {
         metadata: {
           ...data.metadata,
-          discount_percentage: discountValue,
+          discount_percentage: discount ? Number(discount) : null,
+          display_order: displayOrder ? Number(displayOrder) : null,
         },
       });
 
-      toast.success('Discount updated successfully');
+      toast.success('Vehicle settings updated successfully');
     } catch (err) {
-      toast.error(`Error updating discount: ${(err as Error).message}`);
+      toast.error(`Error updating: ${(err as Error).message}`);
     } finally {
       setIsUpdating(false);
     }
@@ -33,35 +34,60 @@ const ProductDiscountWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
   return (
     <Container className="p-6 mt-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <Heading level="h2" className="mb-1">Vehicle Discount</Heading>
-          <p className="text-ui-fg-subtle text-sm">
-            Set a discount percentage for this vehicle to automatically strike through the original price.
-          </p>
-        </div>
+      <div className="mb-6">
+        <Heading level="h2" className="mb-1">Vehicle Display Settings</Heading>
+        <p className="text-ui-fg-subtle text-sm">
+          Configure the discount and grid position for this vehicle on the storefront.
+        </p>
       </div>
-      
-      <div className="mt-6 flex items-end gap-4 max-w-sm">
-        <div className="flex-1 space-y-2">
-          <Label htmlFor="discount-input">Discount Percentage (%)</Label>
-          <Input 
-            id="discount-input" 
-            placeholder="e.g. 10" 
-            type="number"
-            min="0"
-            max="100"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-          />
+
+      <div className="flex flex-col gap-6 max-w-lg">
+        {/* Discount Percentage */}
+        <div className="flex items-end gap-4">
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="discount-input">Discount Percentage (%)</Label>
+            <p className="text-ui-fg-muted text-xs">
+              Strikes through the original price and shows the discounted price in red.
+            </p>
+            <Input
+              id="discount-input"
+              placeholder="e.g. 10"
+              type="number"
+              min="0"
+              max="100"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+            />
+          </div>
         </div>
-        <Button 
-          variant="secondary" 
-          onClick={handleSave} 
-          isLoading={isUpdating}
-        >
-          Save Discount
-        </Button>
+
+        {/* Grid Position */}
+        <div className="flex items-end gap-4">
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="display-order-input">Grid Position</Label>
+            <p className="text-ui-fg-muted text-xs">
+              Controls the position of this card in the vehicle grid (1 = first). Leave empty for default order.
+            </p>
+            <Input
+              id="display-order-input"
+              placeholder="e.g. 1"
+              type="number"
+              min="1"
+              value={displayOrder}
+              onChange={(e) => setDisplayOrder(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Button
+            variant="secondary"
+            onClick={handleSave}
+            isLoading={isUpdating}
+          >
+            Save Settings
+          </Button>
+        </div>
       </div>
     </Container>
   );
